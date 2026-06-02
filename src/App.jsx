@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, RotateCcw, BookOpen, Trophy, AlertCircle, CheckCircle, XCircle, Save, SkipForward, ClipboardList, Filter, Upload, Trash2, FileText, GraduationCap, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, BookOpen, Trophy, AlertCircle, CheckCircle, XCircle, Save, SkipForward, ClipboardList, Filter, Upload, Trash2, FileText, GraduationCap, Layers, Search } from 'lucide-react';
 import managementRaw from './data/management.json';
 import economicsRaw from './data/economics.json';
 import businessCommunicationRaw from './data/business_communication.json';
 import FlashcardDeck from './components/FlashcardDeck';
+import QuestionSearch from './components/QuestionSearch';
+import HelpButton from './components/HelpButton';
 
 // Сколько вопросов в одном варианте
 const VARIANT_SIZE = 30;
@@ -127,7 +129,7 @@ const getExplanation = (question, selectedAnswer, isCorrect) => {
 };
 
 
-export default function MathExam() {
+function MathExam() {
   const [subjects, setSubjects] = useState(BUILTIN_SUBJECTS);
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
@@ -141,6 +143,7 @@ export default function MathExam() {
   const [reviewFilter, setReviewFilter] = useState('all'); // 'all', 'correct', 'incorrect', 'skipped'
   const [shuffledAnswers, setShuffledAnswers] = useState({});
   const [importError, setImportError] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   // Текущий предмет / вариант / набор вопросов
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId) || null;
@@ -339,6 +342,11 @@ export default function MathExam() {
     total: QUESTIONS_DATA.length
   };
 
+  // Страница-база вопросов с поиском
+  if (showSearch) {
+    return <QuestionSearch subjects={subjects} onExit={() => setShowSearch(false)} />;
+  }
+
   // Экран выбора предмета
   if (!selectedSubjectId) {
     return (
@@ -350,6 +358,14 @@ export default function MathExam() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Подготовка к тестам</h1>
               <p className="text-gray-600">Выберите предмет для подготовки</p>
             </div>
+
+            <button
+              onClick={() => setShowSearch(true)}
+              className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-purple-200 bg-purple-50 py-3 font-medium text-purple-700 transition-colors hover:bg-purple-100"
+            >
+              <Search className="h-5 w-5" />
+              Поиск по всем вопросам
+            </button>
 
             <div className="space-y-3">
               {subjects.map((subject) => {
@@ -968,5 +984,15 @@ export default function MathExam() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Обёртка: основной интерфейс + плавающая кнопка помощи на всех экранах
+export default function App() {
+  return (
+    <>
+      <MathExam />
+      <HelpButton />
+    </>
   );
 }
