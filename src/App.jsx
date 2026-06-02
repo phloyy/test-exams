@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, RotateCcw, BookOpen, Trophy, AlertCircle, CheckCircle, XCircle, Save, SkipForward, ClipboardList, Filter, Upload, Trash2, FileText, GraduationCap, Layers } from 'lucide-react';
 import managementRaw from './data/management.json';
 import economicsRaw from './data/economics.json';
+import businessCommunicationRaw from './data/business_communication.json';
+import FlashcardDeck from './components/FlashcardDeck';
 
 // Сколько вопросов в одном варианте
 const VARIANT_SIZE = 30;
@@ -59,6 +61,7 @@ const buildSubject = (meta, rawArray) => {
 const BUILTIN_SUBJECTS = [
   buildSubject({ id: 'management', name: 'Менеджмент', icon: '📊', builtin: true }, managementRaw),
   buildSubject({ id: 'economics', name: 'Экономика', icon: '💰', builtin: true }, economicsRaw),
+  buildSubject({ id: 'business_communication', name: 'Деловое общение', icon: '🤝', builtin: true }, businessCommunicationRaw),
 ];
 
 // Проверка, что загруженный JSON — корректный массив вопросов
@@ -510,6 +513,19 @@ export default function MathExam() {
                   <Trophy className="w-8 h-8" />
                 </div>
               </button>
+
+              <button
+                onClick={() => setMode('flashcards')}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-left">
+                    <h3 className="text-xl font-bold mb-1">Флеш-карточки</h3>
+                    <p className="text-sm text-indigo-100">Свайп-режим: вопрос → ответ, «знаю» / «повторить»</p>
+                  </div>
+                  <Layers className="w-8 h-8" />
+                </div>
+              </button>
             </div>
 
             <div className="mt-8 p-4 bg-purple-50 rounded-lg">
@@ -523,6 +539,27 @@ export default function MathExam() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Режим флеш-карточек: вопрос/ответ со свайпами
+  if (mode === 'flashcards') {
+    const flashcards = QUESTIONS_DATA.map((q) => {
+      const correct = q.answers.find((a) => a.correct);
+      return {
+        id: q.id,
+        question: q.question,
+        answer: correct?.text || '',
+        explanation: q.explanation?.correct || '',
+      };
+    });
+
+    return (
+      <FlashcardDeck
+        cards={flashcards}
+        title={`${selectedSubject?.icon} ${selectedSubject?.name} · ${selectedVariant?.name}`}
+        onExit={() => setMode(null)}
+      />
     );
   }
 
