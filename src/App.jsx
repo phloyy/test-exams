@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, RotateCcw, BookOpen, Trophy, AlertCircle, Ch
 import managementRaw from './data/management.json';
 import economicsRaw from './data/economics.json';
 import businessCommunicationRaw from './data/business_communication.json';
+import mathRaw from './data/math.json';
 import FlashcardDeck from './components/FlashcardDeck';
 import QuestionSearch from './components/QuestionSearch';
 import HelpButton from './components/HelpButton';
@@ -64,6 +65,7 @@ const BUILTIN_SUBJECTS = [
   buildSubject({ id: 'management', name: 'Менеджмент', icon: '📊', builtin: true }, managementRaw),
   buildSubject({ id: 'economics', name: 'Экономика', icon: '💰', builtin: true }, economicsRaw),
   buildSubject({ id: 'business_communication', name: 'Деловое общение', icon: '🤝', builtin: true }, businessCommunicationRaw),
+  buildSubject({ id: 'math', name: 'Математика', icon: '🧮', builtin: true }, mathRaw),
 ];
 
 // Проверка, что загруженный JSON — корректный массив вопросов
