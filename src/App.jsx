@@ -4,6 +4,11 @@ import managementRaw from './data/management.json';
 import economicsRaw from './data/economics.json';
 import businessCommunicationRaw from './data/business_communication.json';
 import mathRaw from './data/math.json';
+import macroPart1Raw from './data/macroeconomics/Flashcards_Part1_Q1-26.json';
+import macroPart2Raw from './data/macroeconomics/Flashcards_Part2_Q27-52.json';
+import macroPart3Raw from './data/macroeconomics/Flashcards_Part3_Q53-78.json';
+import macroPart4Raw from './data/macroeconomics/Flashcards_Part4_Q79-104.json';
+import macroPart5Raw from './data/macroeconomics/Flashcards_Part5_Q105-130.json';
 import FlashcardDeck from './components/FlashcardDeck';
 import QuestionSearch from './components/QuestionSearch';
 import HelpButton from './components/HelpButton';
@@ -60,8 +65,43 @@ const buildSubject = (meta, rawArray) => {
   return { ...meta, totalQuestions: questions.length, variants };
 };
 
-// Встроенные предметы
+// Нормализация карточки формата { id, question, answer } во внутренний вид.
+// Ответ кладём единственным «правильным» вариантом — так его понимают
+// и колода флеш-карточек, и поиск по базе вопросов.
+const normalizeFlashcard = (raw, id) => ({
+  id,
+  question: raw.question,
+  answers: [{ text: raw.answer, correct: true }],
+  explanation: { correct: '', details: {} },
+});
+
+// Построение предмета «только карточки»: каждая часть (тема) — отдельный вариант.
+// parts: [{ id, name, data: [{ id, question, answer }] }]
+const buildFlashcardSubject = (meta, parts) => {
+  const variants = parts.map((part) => {
+    const arr = Array.isArray(part.data) ? part.data : [];
+    return {
+      id: part.id,
+      name: part.name,
+      questions: arr.map((q) => normalizeFlashcard(q, q.id)),
+    };
+  });
+  const totalQuestions = variants.reduce((sum, v) => sum + v.questions.length, 0);
+  return { ...meta, totalQuestions, variants, flashcardsOnly: true };
+};
+
+// Темы (части) предмета «Макроэкономика»
+const MACRO_PARTS = [
+  { id: 1, name: 'Part 1 · ВВП, ВНД, CPI, безработица, инфляция', data: macroPart1Raw },
+  { id: 2, name: 'Part 2 · AD-AS, кривая Филлипса, потребление, мультипликатор', data: macroPart2Raw },
+  { id: 3, name: 'Part 3 · Денежный рынок, спрос на деньги, фискальная политика', data: macroPart3Raw },
+  { id: 4, name: 'Part 4 · Банковская система, монетарная политика, экономический рост', data: macroPart4Raw },
+  { id: 5, name: 'Part 5 · Международная торговля, валютный рынок, конкурентоспособность', data: macroPart5Raw },
+];
+
+// Встроенные предметы (Макроэкономика — первой в очереди)
 const BUILTIN_SUBJECTS = [
+  buildFlashcardSubject({ id: 'macroeconomics', name: 'Макроэкономика', icon: '📈', builtin: true }, MACRO_PARTS),
   buildSubject({ id: 'management', name: 'Менеджмент', icon: '📊', builtin: true }, managementRaw),
   buildSubject({ id: 'economics', name: 'Экономика', icon: '💰', builtin: true }, economicsRaw),
   buildSubject({ id: 'business_communication', name: 'Деловое общение', icon: '🤝', builtin: true }, businessCommunicationRaw),
@@ -146,6 +186,7 @@ function MathExam() {
   const [shuffledAnswers, setShuffledAnswers] = useState({});
   const [importError, setImportError] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [searchSubjectId, setSearchSubjectId] = useState(null); // null = поиск по всем предметам
 
   // Текущий предмет / вариант / набор вопросов
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId) || null;
@@ -346,7 +387,16 @@ function MathExam() {
 
   // Страница-база вопросов с поиском
   if (showSearch) {
-    return <QuestionSearch subjects={subjects} onExit={() => setShowSearch(false)} />;
+    return (
+      <QuestionSearch
+        subjects={subjects}
+        filterSubjectId={searchSubjectId}
+        onExit={() => {
+          setShowSearch(false);
+          setSearchSubjectId(null);
+        }}
+      />
+    );
   }
 
   // Экран выбора предмета
@@ -362,7 +412,10 @@ function MathExam() {
             </div>
 
             <button
-              onClick={() => setShowSearch(true)}
+              onClick={() => {
+                setSearchSubjectId(null);
+                setShowSearch(true);
+              }}
               className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-purple-200 bg-purple-50 py-3 font-medium text-purple-700 transition-colors hover:bg-purple-100"
             >
               <Search className="h-5 w-5" />
@@ -453,8 +506,23 @@ function MathExam() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 {selectedSubject.icon} {selectedSubject.name}
               </h1>
-              <p className="text-gray-600">Выберите вариант теста</p>
+              <p className="text-gray-600">
+                {selectedSubject.flashcardsOnly ? 'Выберите тему для карточек' : 'Выберите вариант теста'}
+              </p>
             </div>
+
+            {selectedSubject.flashcardsOnly && (
+              <button
+                onClick={() => {
+                  setSearchSubjectId(selectedSubject.id);
+                  setShowSearch(true);
+                }}
+                className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-purple-200 bg-purple-50 py-3 font-medium text-purple-700 transition-colors hover:bg-purple-100"
+              >
+                <Search className="h-5 w-5" />
+                Поиск по карточкам
+              </button>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {selectedSubject.variants.map((variant) => {
@@ -469,7 +537,7 @@ function MathExam() {
                       <div className="text-left">
                         <h3 className="text-lg font-bold">{variant.name}</h3>
                         <p className="text-sm text-indigo-100">
-                          {variant.questions.length} вопросов
+                          {variant.questions.length} {selectedSubject.flashcardsOnly ? 'карточек' : 'вопросов'}
                           {hasProgress && ' · есть прогресс'}
                         </p>
                       </div>
@@ -482,6 +550,27 @@ function MathExam() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Предмет «только карточки» — сразу колода флеш-карточек, без выбора режима
+  if (selectedSubject?.flashcardsOnly) {
+    const flashcards = QUESTIONS_DATA.map((q) => {
+      const correct = q.answers.find((a) => a.correct);
+      return {
+        id: q.id,
+        question: q.question,
+        answer: correct?.text || '',
+        explanation: q.explanation?.correct || '',
+      };
+    });
+
+    return (
+      <FlashcardDeck
+        cards={flashcards}
+        title={`${selectedSubject.icon} ${selectedSubject.name} · ${selectedVariant?.name}`}
+        onExit={backToVariants}
+      />
     );
   }
 

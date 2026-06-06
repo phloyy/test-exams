@@ -51,15 +51,22 @@ const copyToClipboard = async (text) => {
  * @param {Array} subjects - предметы (встроенные + импортированные)
  * @param {Function} onExit - вернуться к выбору предмета
  */
-export default function QuestionSearch({ subjects, onExit }) {
+export default function QuestionSearch({ subjects, onExit, filterSubjectId = null }) {
   const [query, setQuery] = useState('');
   const [openKey, setOpenKey] = useState(null);
   const [copiedKey, setCopiedKey] = useState(null);
 
+  // Если задан filterSubjectId — ищем только внутри одного предмета
+  const scopedSubjects = useMemo(
+    () => (filterSubjectId ? subjects.filter((s) => s.id === filterSubjectId) : subjects),
+    [subjects, filterSubjectId]
+  );
+  const scopedSubject = filterSubjectId ? scopedSubjects[0] : null;
+
   // Плоский список всех вопросов с контекстом предмета/варианта
   const allItems = useMemo(() => {
     const items = [];
-    subjects.forEach((s) => {
+    scopedSubjects.forEach((s) => {
       s.variants.forEach((v) => {
         v.questions.forEach((q) => {
           items.push({
@@ -74,7 +81,7 @@ export default function QuestionSearch({ subjects, onExit }) {
       });
     });
     return items;
-  }, [subjects]);
+  }, [scopedSubjects]);
 
   const term = norm(query).trim();
 
@@ -117,13 +124,19 @@ export default function QuestionSearch({ subjects, onExit }) {
             onClick={onExit}
             className="mb-4 flex items-center gap-1 text-gray-500 transition-colors hover:text-gray-700"
           >
-            <ChevronLeft className="h-5 w-5" /> К предметам
+            <ChevronLeft className="h-5 w-5" /> {scopedSubject ? 'К темам' : 'К предметам'}
           </button>
 
           <div className="mb-6 text-center">
             <Search className="mx-auto mb-3 h-12 w-12 text-purple-600" />
-            <h1 className="mb-1 text-2xl font-bold text-gray-900 sm:text-3xl">База вопросов</h1>
-            <p className="text-gray-600">Поиск по всем предметам · {allItems.length} вопросов</p>
+            <h1 className="mb-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+              {scopedSubject ? `${scopedSubject.icon} ${scopedSubject.name}` : 'База вопросов'}
+            </h1>
+            <p className="text-gray-600">
+              {scopedSubject
+                ? `Поиск по карточкам · ${allItems.length} шт.`
+                : `Поиск по всем предметам · ${allItems.length} вопросов`}
+            </p>
           </div>
 
           {/* Поле поиска */}
