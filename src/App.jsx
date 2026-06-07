@@ -12,6 +12,7 @@ import macroPart5Raw from './data/macroeconomics/Flashcards_Part5_Q105-130.json'
 import FlashcardDeck from './components/FlashcardDeck';
 import QuestionSearch from './components/QuestionSearch';
 import HelpButton from './components/HelpButton';
+import StepProgressBar from './components/StepProgressBar';
 
 // Сколько вопросов в одном варианте
 const VARIANT_SIZE = 30;
@@ -224,7 +225,8 @@ function MathExam() {
         setAnswers(data.answers || {});
         setSkipped(data.skipped || {});
         setCurrentQ(data.currentQ || 0);
-        setMode(data.mode || null);
+        // mode НЕ восстанавливаем: путь всегда строго
+        // Предмет → Вариант → Выбор режима. Прогресс при этом сохраняется.
       } catch (e) {
         console.error('Ошибка загрузки прогресса:', e);
       }
@@ -358,6 +360,21 @@ function MathExam() {
       setCurrentQ(currentQ - 1);
       setShowResult(false);
     }
+  };
+
+  // Возврат к выбору режима подготовки (прогресс сохраняется)
+  const backToMode = () => {
+    setMode(null);
+    setShowResult(false);
+    setShowExamResults(false);
+    setShowReview(false);
+  };
+
+  // Прыжок к произвольному вопросу через прогресс-бар (разрешён и в экзамене)
+  const goToQuestion = (idx) => {
+    if (idx === currentQ) return;
+    setCurrentQ(idx);
+    setShowResult(false);
   };
 
   const reset = () => {
@@ -890,6 +907,13 @@ function MathExam() {
             </div>
             <div className="flex gap-2">
               <button
+                onClick={backToMode}
+                className="text-gray-500 hover:text-gray-700 transition-colors p-2"
+                title="К выбору режима подготовки"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
                 onClick={backToSubjects}
                 className="text-gray-500 hover:text-gray-700 transition-colors p-2"
                 title="К выбору предмета"
@@ -920,13 +944,12 @@ function MathExam() {
             </div>
           </div>
 
-          {/* Прогресс-бар */}
-          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-            <div 
-              className="bg-gradient-to-r from-purple-500 to-indigo-600 h-full transition-all duration-300"
-              style={{ width: `${((currentQ + 1) / QUESTIONS_DATA.length) * 100}%` }}
-            />
-          </div>
+          {/* Прогресс-бар — перетаскиванием переходим к нужному вопросу */}
+          <StepProgressBar
+            total={QUESTIONS_DATA.length}
+            current={currentQ}
+            onChange={goToQuestion}
+          />
 
           {/* Статистика */}
           <div className="grid grid-cols-4 gap-3 mt-4">

@@ -8,8 +8,10 @@ import {
   ChevronDown,
   Layers,
   PartyPopper,
+  Undo2,
 } from 'lucide-react';
 import SwipeableCard from './SwipeableCard';
+import StepProgressBar from './StepProgressBar';
 
 // Сколько карточек колоды видно одновременно (верхняя + те, что за ней)
 const VISIBLE_STACK = 3;
@@ -38,6 +40,19 @@ export default function FlashcardDeck({ cards: initialCards, onExit, title }) {
       return next;
     });
     setIndex((i) => i + 1);
+  };
+
+  // Откат на предыдущую карточку: возвращаем её статус и индекс
+  const goBack = () => {
+    if (index === 0) return;
+    setCards((prev) => {
+      const next = [...prev];
+      if (next[index - 1]) {
+        next[index - 1] = { ...next[index - 1], status: 'unanswered' };
+      }
+      return next;
+    });
+    setIndex((i) => i - 1);
   };
 
   const restartFailed = () => {
@@ -195,13 +210,14 @@ export default function FlashcardDeck({ cards: initialCards, onExit, title }) {
           </span>
         </div>
 
-        {/* Прогресс-бар колоды */}
-        <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-300"
-            style={{ width: `${(index / cards.length) * 100}%` }}
-          />
-        </div>
+        {/* Прогресс-бар колоды — перетаскиванием меняем карточку */}
+        <StepProgressBar
+          total={cards.length}
+          current={index}
+          onChange={setIndex}
+          className="mb-6"
+          height="h-2"
+        />
 
         {/* Область колоды */}
         <div className="flashcard-stage relative mx-auto h-[26rem] w-full">
@@ -217,7 +233,15 @@ export default function FlashcardDeck({ cards: initialCards, onExit, title }) {
         </div>
 
         {/* Кнопки-дубли для тех, кто без свайпа (desktop) */}
-        <div className="mt-6 flex justify-center gap-6">
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <button
+            onClick={goBack}
+            disabled={index === 0}
+            className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-gray-200 bg-white text-gray-500 shadow-md transition-all hover:scale-105 hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+            title="Назад к предыдущей карточке"
+          >
+            <Undo2 className="h-5 w-5" />
+          </button>
           <button
             onClick={() => handleSwipe('left')}
             className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-red-200 bg-white text-red-500 shadow-md transition-all hover:scale-105 hover:border-red-400"
@@ -231,6 +255,13 @@ export default function FlashcardDeck({ cards: initialCards, onExit, title }) {
             title="Знаю (свайп вправо)"
           >
             <Check className="h-7 w-7" />
+          </button>
+          <button
+            onClick={restartAll}
+            className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-gray-200 bg-white text-gray-500 shadow-md transition-all hover:scale-105 hover:border-gray-400"
+            title="Сбросить колоду"
+          >
+            <RotateCcw className="h-5 w-5" />
           </button>
         </div>
 

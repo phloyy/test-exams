@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Check, X, RotateCw } from 'lucide-react';
+import { Check, X, RotateCw, Copy, ClipboardCheck, Volume2, Square } from 'lucide-react';
 
 // Сколько пикселей нужно протащить, чтобы свайп засчитался
 const SWIPE_THRESHOLD = 110;
@@ -21,8 +21,78 @@ export default function SwipeableCard({ card, isTop, stackIndex, onSwipe }) {
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [leaving, setLeaving] = useState(null); // null | 'left' | 'right'
+  const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const start = useRef(null);
   const moved = useRef(false);
+
+  // Не даём клику/перетаскиванию по кнопке перевернуть или потащить карточку
+  const stop = (e) => e.stopPropagation();
+
+  const copyText = (e, text) => {
+    e.stopPropagation();
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    });
+  };
+
+  const speak = (e, text) => {
+    e.stopPropagation();
+    if (!window.speechSynthesis) return;
+    // Если уже читает — повторное нажатие останавливает озвучку
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ru-RU';
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Текст для копирования/озвучки в зависимости от стороны карточки
+  const answerText = [card.answer, card.explanation].filter(Boolean).join('. ');
+  const frontActions = (
+    <div className="absolute right-3 top-3 flex gap-1" onPointerDown={stop}>
+      <button
+        onClick={(e) => speak(e, card.question)}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+        title={speaking ? 'Остановить' : 'Прочитать вслух'}
+      >
+        {speaking ? <Square className="h-4 w-4 fill-current" /> : <Volume2 className="h-4 w-4" />}
+      </button>
+      <button
+        onClick={(e) => copyText(e, card.question)}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+        title="Скопировать текст"
+      >
+        {copied ? <ClipboardCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+  const backActions = (
+    <div className="absolute right-3 top-3 flex gap-1" onPointerDown={stop}>
+      <button
+        onClick={(e) => speak(e, answerText)}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-indigo-500 transition-colors hover:bg-white hover:text-indigo-700"
+        title={speaking ? 'Остановить' : 'Прочитать вслух'}
+      >
+        {speaking ? <Square className="h-4 w-4 fill-current" /> : <Volume2 className="h-4 w-4" />}
+      </button>
+      <button
+        onClick={(e) => copyText(e, answerText)}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-indigo-500 transition-colors hover:bg-white hover:text-indigo-700"
+        title="Скопировать текст"
+      >
+        {copied ? <ClipboardCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+      </button>
+    </div>
+  );
 
   const handlePointerDown = (e) => {
     if (!isTop || leaving) return;
@@ -95,6 +165,7 @@ export default function SwipeableCard({ card, isTop, stackIndex, onSwipe }) {
       <div className={`flip-card-inner h-full w-full ${flipped ? 'flipped' : ''}`}>
         {/* Лицевая сторона — вопрос */}
         <div className="flip-face absolute inset-0 flex flex-col rounded-2xl bg-white shadow-xl border border-gray-100 p-6">
+          {frontActions}
           <span className="text-xs font-semibold uppercase tracking-wide text-purple-500">Вопрос</span>
           <div className="flex flex-1 items-center justify-center">
             <p className="text-center text-lg font-bold text-gray-900 leading-snug">
@@ -109,6 +180,7 @@ export default function SwipeableCard({ card, isTop, stackIndex, onSwipe }) {
 
         {/* Обратная сторона — ответ */}
         <div className="flip-face flip-back absolute inset-0 flex flex-col rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 shadow-xl border border-purple-100 p-6">
+          {backActions}
           <span className="text-xs font-semibold uppercase tracking-wide text-indigo-500">Ответ</span>
           <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-y-auto">
             <p className="text-center text-lg font-bold text-indigo-900 leading-snug">
